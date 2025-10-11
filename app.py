@@ -69,11 +69,11 @@ def startup_note():
 
 # HEAD-safe home that renders your template
 
-@app.route("/", methods=["GET", "HEAD"])
+@app.route("/", methods=["GET","HEAD"])
 def home():
     if request.method == "HEAD":
         return "", 200
-    # If you previously passed variables into the template, keep them:
+    # keep your variables if you use them:
     # return render_template("index.html", year=datetime.now().year)
     return render_template("index.html")
 
