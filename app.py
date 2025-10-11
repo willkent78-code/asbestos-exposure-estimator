@@ -6,10 +6,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from pathlib import Path
-from flask import jsonify 
-import os                 
+import os
+import logging
+import traceback                 
 
 @app.get("/_diag")
 def _diag():
@@ -22,13 +23,22 @@ def _diag():
     }), 200
 
 
-
 BASE_DIR = Path(__file__).resolve().parent
 app = Flask(
     __name__,
     template_folder=str(BASE_DIR / "templates"),
     static_folder=str(BASE_DIR / "static")
 )
+
+# strong logging so we see errors in Render logs
+logging.basicConfig(level=logging.INFO)
+
+@app.before_first_request
+def startup_note():
+    p = Path(app.template_folder) / "index.html"
+    app.logger.info(f"[startup] templates dir={app.template_folder} exists={Path(app.template_folder).exists()} index={p.exists()}")
+
+# HEAD-safe home that renders your template
 
 @app.route("/", methods=["GET", "HEAD"])
 def home():
@@ -38,9 +48,21 @@ def home():
         return "", 200
     return render_template("index.html")
 
+# plain text test route (proves server is fine even if template breaks)
+@app.get("/test")
+def test():
+    return "server ok", 200
+
+# health route for quick probe
 @app.get("/health")
 def health():
     return "ok", 200
+
+# catch-all to surface exact error in logs
+@app.errorhandler(Exception)
+def handle_any(e):
+    app.logger.error("Unhandled error on request:\n%s", traceback.format_exc())
+    return "Internal Server Error", 500
 
 BASE_BANDS = {
     ("lagging/insulation", "pre-1980"): (5.0, 10.0),
