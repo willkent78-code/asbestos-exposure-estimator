@@ -1,5 +1,5 @@
 Flask==3.0.0
 reportlab==4.0.8
-gunicorn
+waitress
 streamlit>=1.37
 pillow
