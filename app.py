@@ -22,6 +22,35 @@ def _diag():
         "templates_listing": sorted(os.listdir(tpl_dir)) if tpl_dir.exists() else [],
     }), 200
 
+logging.basicConfig(level=logging.INFO)
+
+@app.before_first_request
+def startup_note():
+    p = Path(app.template_folder) / "index.html"
+    app.logger.info(
+        f"[startup] templates dir={app.template_folder} exists={Path(app.template_folder).exists()} index={p.exists()}"
+    )
+
+@app.errorhandler(Exception)
+def handle_any(e):
+    app.logger.error("Unhandled error on request:\n%s", traceback.format_exc())
+    return "Internal Server Error", 500
+
+
+@app.get("/health")
+def health():
+    return "ok", 200
+
+@app.get("/test")
+def test():
+    return "server ok", 200
+
+# Handle Render’s HEAD probe + your normal GET page
+@app.route("/", methods=["GET", "HEAD"])
+def home():
+    if request.method == "HEAD":
+        return "", 200
+    return render_template("index.html")
 
 BASE_DIR = Path(__file__).resolve().parent
 app = Flask(
