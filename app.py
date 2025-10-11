@@ -69,13 +69,10 @@ def startup_note():
 
 # HEAD-safe home that renders your template
 
-@app.route("/", methods=["GET","HEAD"])
-def home():
-    if request.method == "HEAD":
-        return "", 200
-    # keep your variables if you use them:
-    # return render_template("index.html", year=datetime.now().year)
-    return render_template("index.html")
+@app.route("/health", methods=["GET", "HEAD"])
+def health():
+    return ("", 200) if request.method == "HEAD" else ("ok", 200)
+
 
 # plain text test route (proves server is fine even if template breaks)
 @app.get("/test")
