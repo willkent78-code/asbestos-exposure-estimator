@@ -8,9 +8,9 @@ from reportlab.lib import colors
 
 from flask import Flask, render_template, request, jsonify
 from pathlib import Path
-import os
-import logging
-import traceback                 
+import logging, traceback
+from datetime import datetime
+
 
 @app.get("/_diag")
 def _diag():
@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO)
 def startup_note():
     p = Path(app.template_folder) / "index.html"
     app.logger.info(
-        f"[startup] templates dir={app.template_folder} exists={Path(app.template_folder).exists()} index={p.exists()}"
+        f"[startup] template_folder={app.template_folder} exists={Path(app.template_folder).exists()} index_exists={p.exists()}"
     )
 
 @app.errorhandler(Exception)
@@ -72,15 +72,34 @@ def startup_note():
 @app.route("/", methods=["GET", "HEAD"])
 def home():
     if request.method == "HEAD":
-        # Render’s automatic health checks use HEAD requests.
-        # We respond with 200 OK and no content.
         return "", 200
+    # If you previously passed variables into the template, keep them:
+    # return render_template("index.html", year=datetime.now().year)
     return render_template("index.html")
 
 # plain text test route (proves server is fine even if template breaks)
 @app.get("/test")
 def test():
     return "server ok", 200
+
+@app.get("/health")
+def health():
+    return "ok", 200
+
+@app.get("/test")
+def test():
+    return "server ok", 200
+
+@app.errorhandler(Exception)
+def handle_any(e):
+    app.logger.error("Unhandled error on request:\n%s", traceback.format_exc())
+    return "Internal Server Error", 500
+
+
+@app.errorhandler(Exception)
+def handle_any(e):
+    app.logger.error("Unhandled error:\n%s", traceback.format_exc())
+    return "Internal Server Error", 500
 
 # health route for quick probe
 @app.get("/health")
