@@ -7,11 +7,21 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
 from flask import Flask, render_template
-app = Flask(__name__)
+BASE_DIR = Path(__file__).resolve().parent
+app = Flask(
+    __name__,
+    template_folder=str(BASE_DIR / "templates"),
+    static_folder=str(BASE_DIR / "static")
+)
 
-@app.get("/")
+
+@app.route("/", methods=["GET", "HEAD"])
 def home():
-    return "Flask is running (no template).", 200
+    if request.method == "HEAD":
+        # Render’s automatic health checks use HEAD requests.
+        # We respond with 200 OK and no content.
+        return "", 200
+    return render_template("index.html")
 
 @app.get("/health")
 def health():
@@ -33,7 +43,7 @@ DISCLAIMER = (
     "Educational use only. This estimator provides a non-diagnostic approximation of cumulative exposure "
     "using literature-style bands and user-entered history. It is not medical or legal advice and does not "
     "determine eligibility for any claim or benefit. Operated in the UK for a UK audience. "
-    "© 2025 Dr [Name] / [Company]. Independent of sponsors; no editorial input from any funder."
+    "© 2025 Dr W. Kent. Independent of sponsors; no editorial input from any funder."
 )
 
 def band_for(task, era):
@@ -74,6 +84,9 @@ def compute_role(role):
     }
 
 from flask import render_template
+
+from pathlib import Path
+from flask import Flask, render_template, request  # request may be new
 
 @app.route("/")
 def index():
