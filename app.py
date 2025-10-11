@@ -6,14 +6,15 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+from pathlib import Path
+
 BASE_DIR = Path(__file__).resolve().parent
 app = Flask(
     __name__,
     template_folder=str(BASE_DIR / "templates"),
     static_folder=str(BASE_DIR / "static")
 )
-
 
 @app.route("/", methods=["GET", "HEAD"])
 def home():
