@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asbestos Exposure Educational Estimator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Asbestos Exposure Educational Estimator <span class="badge">Prototype</span></h1>
+    <p class="subtitle">Educational use only — not medical or legal advice.</p>
+<div class="ai-box">
+  <h3>Paste a free-text job history</h3>
+  <textarea id="freeText" rows="5" style="width:100%;" placeholder="e.g. Worked as shipyard lagger 1968–75 removing insulation; no masks; 5 days/week, ~6 hours/day."></textarea>
+  <button id="aiParse">AI-parse history into roles</button>
+  <small>AI: educational parsing only; you can edit before estimating.</small>
+</div>
+
+
+    <div id="roles"></div>
+    <button id="addRole">+ Add role</button>
+    <button id="estimate">Estimate</button>
+    <button id="export">Export PDF</button>
+
+    <div id="result" class="result"></div>
+
+    <details class="disclaimer">
+      <summary>Disclaimer</summary>
+      <p>
+        This estimator provides a non-diagnostic approximation of cumulative exposure using literature-style bands and user-entered history.
+        It is not medical or legal advice and does not determine eligibility for any claim or benefit. Operated in the UK for a UK audience.
+        © 2025 Dr [Name] / [Company]. Independent of sponsors; no editorial input from any funder.
+      </p>
+    </details>
+  </div>
+
+  <template id="roleTemplate">
+    <div class="role">
+      <h3>Role <span class="idx"></span></h3>
+      <label>Task/Role
+        <select class="task">
+          <option>lagging/insulation</option>
+          <option>maintenance/demolition</option>
+          <option>cement/board cutting</option>
+          <option>garage/brakes</option>
+          <option>bystander</option>
+        </select>
+      </label>
+      <label>Era
+        <select class="era">
+          <option>pre-1980</option>
+          <option>1980-1999</option>
+          <option>2000+</option>
+        </select>
+      </label>
+      <label>Start year <input type="number" class="start" value="1968"></label>
+      <label>End year <input type="number" class="end" value="1975"></label>
+      <label>Days/week <input type="number" step="0.5" class="dpw" value="5"></label>
+      <label>Hours/day <input type="number" step="0.5" class="hpd" value="6"></label>
+      <label><input type="checkbox" class="rpe"> Consistent effective respirator (RPE)</label>
+      <label><input type="checkbox" class="lev"> Local exhaust ventilation (LEV)</label>
+      <button class="remove">Remove</button>
+    </div>
+  </template>
+
+  <script>
+    const rolesDiv = document.getElementById('roles');
+    const tpl = document.getElementById('roleTemplate');
+
+    function renumber() {
+      document.querySelectorAll('.role').forEach((el, i) => el.querySelector('.idx').textContent = i+1);
+    }
+
+    function addRole() {
+      const node = tpl.content.cloneNode(true);
+      node.querySelector('.remove').addEventListener('click', (e)=>{
+        e.target.closest('.role').remove();
+        renumber();
+      });
+      rolesDiv.appendChild(node);
+      renumber();
+    }
+
+    document.getElementById('addRole').addEventListener('click', addRole);
+    addRole();
+
+    function collectRoles() {
+      const items = [];
+      document.querySelectorAll('.role').forEach(r => {
+        items.push({
+          task: r.querySelector('.task').value,
+          era: r.querySelector('.era').value,
+          start_year: r.querySelector('.start').value,
+          end_year: r.querySelector('.end').value,
+          days_per_week: r.querySelector('.dpw').value,
+          hours_per_day: r.querySelector('.hpd').value,
+          rpe: r.querySelector('.rpe').checked,
+          lev: r.querySelector('.lev').checked
+        });
+      });
+      return items;
+    }
+
+    document.getElementById('estimate').addEventListener('click', async ()=>{
+      const roles = collectRoles();
+      const res = await fetch('/estimate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({roles})
+      });
+      const data = await res.json();
+      const result = document.getElementById('result');
+      if (data.summaries) {
+        let html = '';
+        data.summaries.forEach((s,i)=>{
+          html += `<div class="card">
+            <h4>Role ${i+1}: ${s.task} (${s.era}) — ${s.years} years</h4>
+            <p><b>Base band (f/ml):</b> ${s.base_band[0].toFixed(2)}–${s.base_band[1].toFixed(2)}</p>
+            <p><b>Adjusted band (f/ml):</b> ${s.adjusted_band[0].toFixed(2)}–${s.adjusted_band[1].toFixed(2)}</p>
+            <p><b>Role dose (f/ml·years):</b> ${s.dose_range[0].toFixed(1)}–${s.dose_range[1].toFixed(1)}</p>
+          </div>`;
+        });
+        html += `<div class="total"><b>Total cumulative exposure:</b> ${data.total_range[0].toFixed(1)}–${data.total_range[1].toFixed(1)} f/ml·years</div>`;
+        if (data.latency_years) html += `<div class="latency"><b>Latency:</b> ~${data.latency_years} years since first exposure</div>`;
+        result.innerHTML = html;
+      } else {
+        result.textContent = 'Error calculating. Check inputs.';
+      }
+    });
+
+    document.getElementById('export').addEventListener('click', async ()=>{
+      const roles = collectRoles();
+      const res = await fetch('/estimate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({roles})
+      });
+      const data = await res.json();
+      const payload = {
+        roles: roles,
+        totals: {low: data.total_range[0], high: data.total_range[1], latency: data.latency_years},
+        disclaimer: document.querySelector('.disclaimer p').textContent
+      };
+      const pdfRes = await fetch('/export_pdf', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const blob = await pdfRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'asbestos_estimate_summary.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    });
+  </script>
+<script>
+  // Attach after the DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const parseBtn = document.getElementById('aiParse');
+    if (!parseBtn) return;
+
+    parseBtn.addEventListener('click', async () => {
+      const textEl = document.getElementById('freeText');
+      const text = (textEl?.value || '').trim();
+      if (!text) { alert('Paste a short job history first.'); return; }
+
+      try {
+        const res = await fetch('/ai/parse_history', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ text })
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          alert('AI parsing unavailable:\n' + t);
+          return;
+        }
+        const out = await res.json();
+        const roles = out.roles || [out];
+
+        // Clear existing role blocks
+        const rolesDiv = document.getElementById('roles');
+        rolesDiv.innerHTML = '';
+
+        // Helper to add one role block and fill it
+        function addAndFill(r) {
+          // trigger the existing "Add role" button to create a block
+          document.getElementById('addRole').click();
+          const last = [...document.querySelectorAll('.role')].pop();
+          if (!last) return;
+
+          if (r.task)        last.querySelector('.task').value  = r.task;
+          if (r.era)         last.querySelector('.era').value   = r.era;
+          if (r.start_year)  last.querySelector('.start').value = r.start_year;
+          if (r.end_year)    last.querySelector('.end').value   = r.end_year;
+          if (r.days_per_week) last.querySelector('.dpw').value = r.days_per_week;
+          if (r.hours_per_day) last.querySelector('.hpd').value = r.hours_per_day;
+          if (typeof r.rpe === 'boolean') last.querySelector('.rpe').checked = r.rpe;
+          if (typeof r.lev === 'boolean') last.querySelector('.lev').checked = r.lev;
+        }
+
+        roles.forEach(addAndFill);
+        alert('AI draft filled in. Review/edit before estimating.');
+      } catch (e) {
+        alert('Network/JS error: ' + e);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
