@@ -8,6 +8,20 @@ from reportlab.lib import colors
 
 from flask import Flask, render_template, request
 from pathlib import Path
+from flask import jsonify 
+import os                 
+
+@app.get("/_diag")
+def _diag():
+    tpl_dir = Path(app.template_folder)
+    return jsonify({
+        "app_file_dir": str(Path(__file__).resolve().parent),
+        "template_folder": str(app.template_folder),
+        "templates_exists": tpl_dir.exists(),
+        "templates_listing": sorted(os.listdir(tpl_dir)) if tpl_dir.exists() else [],
+    }), 200
+
+
 
 BASE_DIR = Path(__file__).resolve().parent
 app = Flask(
