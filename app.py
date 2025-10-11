@@ -6,7 +6,16 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
+from flask import Flask, render_template
 app = Flask(__name__)
+
+@app.get("/")
+def home():
+    return "Flask is running (no template).", 200
+
+@app.get("/health")
+def health():
+    return "ok", 200
 
 BASE_BANDS = {
     ("lagging/insulation", "pre-1980"): (5.0, 10.0),
