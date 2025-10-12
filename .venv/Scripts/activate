@@ -42,10 +42,10 @@ deactivate nondestructive
 if [ "$OSTYPE" = "cygwin" ] || [ "$OSTYPE" = "msys" ] ; then
     # transform D:\path\to\venv to /d/path/to/venv on MSYS
     # and to /cygdrive/d/path/to/venv on Cygwin
-    export VIRTUAL_ENV=$(cygpath "C:\Users\William\Documents\Asbestos history\asbestos_exposure_estimator_starter\asbestos_exposure_estimator\.venv")
+    export VIRTUAL_ENV=$(cygpath "C:\Users\William\Documents\Asbestos history\asbestos_exposure_estimator_starter\hugging faces asbestos_exposure_estimator\.venv")
 else
     # use the path as-is
-    export VIRTUAL_ENV="C:\Users\William\Documents\Asbestos history\asbestos_exposure_estimator_starter\asbestos_exposure_estimator\.venv"
+    export VIRTUAL_ENV="C:\Users\William\Documents\Asbestos history\asbestos_exposure_estimator_starter\hugging faces asbestos_exposure_estimator\.venv"
 fi
 
 _OLD_VIRTUAL_PATH="$PATH"

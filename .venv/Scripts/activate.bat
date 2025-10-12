@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\William\Documents\Asbestos history\asbestos_exposure_estimator_starter\asbestos_exposure_estimator\.venv
+set VIRTUAL_ENV=C:\Users\William\Documents\Asbestos history\asbestos_exposure_estimator_starter\hugging faces asbestos_exposure_estimator\.venv
 
 if not defined PROMPT set PROMPT=$P$G
 

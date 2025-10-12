@@ -1,6 +1,8 @@
-Flask==3.0.0
-reportlab==4.0.8
-waitress
-streamlit>=1.37
-pillow
+gradio>=4.0
+pandas
+reportlab
+
+flask
 gunicorn
+uvicorn
+reportlab
